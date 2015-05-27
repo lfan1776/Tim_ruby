@@ -43,7 +43,7 @@ end
 
 class SimpleRegressor < Regressor
 
-	def regress time, data_point
+	def self.regress time, data_point
 		data_point_sst = sum_squares_total data_point
 		r1 = polynomial_regress time,data_point,1
 		r1.map!{|e| e.round(2)}
@@ -64,7 +64,7 @@ end
 
 class PolynomialRegressor < Regressor
 
-	def regress time,data_point
+	def self.regress time,data_point
 		data_point_sst = sum_squares_total data_point
 		r = []
 		error_array = []
@@ -99,7 +99,7 @@ end
 
 class LogarithmicRegressor < Regressor
 
-	def regress time,data_point
+	def self.regress time,data_point
 		data_point_sst = sum_squares_total data_point
 		all_pos = true
 		for i in 0..time.length-1
@@ -164,7 +164,7 @@ end
 
 class ExponentialRegressor < Regressor
 
-	def regress time,data_point
+	def self.regress time,data_point
 		data_point_sst = sum_squares_total data_point
 		all_pos = true
 		for i in 0..time.length-1
