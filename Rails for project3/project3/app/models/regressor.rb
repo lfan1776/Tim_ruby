@@ -9,7 +9,7 @@ class Regressor
 		end
 	end
 
-	def sum_squares_total a
+	def self.sum_squares_total a
 		sum = 0
 		a.each {|elem| sum = sum + elem}
 		sum = Float(sum)
@@ -21,7 +21,7 @@ class Regressor
 		return sum_squares_total
 	end
 
-	def error_calc r, t, d
+	def self.error_calc r, t, d
 		sum = 0
 		for l in 0..r.size-1
 			sum = sum + r[l]*(t**l)
@@ -32,7 +32,7 @@ class Regressor
 	end
 
 
-	def all_error r, t, d
+	def self.all_error r, t, d
 		err = []
 		for m in 0..t.size-1
 			err << (error_calc r,t[m],d[m])
@@ -43,6 +43,7 @@ end
 
 class SimpleRegressor < Regressor
 
+
 	def self.regress time, data_point
 		data_point_sst = sum_squares_total data_point
 		r1 = polynomial_regress time,data_point,1
@@ -51,10 +52,10 @@ class SimpleRegressor < Regressor
 		sse1 = 0
 		err1.each{|e| sse1 = sse1 + e**2}
 		r_sqr1 = 1 - (sse1/data_point_sst)
-		return [r1,r_sqr1]
+		return [r1,r_sqr1,"simple"]
 	end
 
-	def polynomial_regress x_array, y_array, degree
+	def self.polynomial_regress x_array, y_array, degree
 		x_data = x_array.map { |x_i| (0..degree).map { |pow| (x_i**pow).to_f } }
 		mx = Matrix[*x_data]
 		my = Matrix.column_vector(y_array)
@@ -63,6 +64,7 @@ class SimpleRegressor < Regressor
 end
 
 class PolynomialRegressor < Regressor
+
 
 	def self.regress time,data_point
 		data_point_sst = sum_squares_total data_point
@@ -85,10 +87,10 @@ class PolynomialRegressor < Regressor
 		#Find the best regression model based on r squared
 		max_index = r_sqr_poly.rindex(r_sqr_poly.max)
 
-		return [r[max_index],r_sqr_poly.max]
+		return [r[max_index],r_sqr_poly.max,"polynomial"]
 	end
 
-	def polynomial_regress x_array, y_array, degree
+	def self.polynomial_regress x_array, y_array, degree
 		x_data = x_array.map { |x_i| (0..degree).map { |pow| (x_i**pow).to_f } }
 		mx = Matrix[*x_data]
 		my = Matrix.column_vector(y_array)
@@ -99,13 +101,14 @@ end
 
 class LogarithmicRegressor < Regressor
 
+
 	def self.regress time,data_point
 		data_point_sst = sum_squares_total data_point
 		all_pos = true
 		for i in 0..time.length-1
 			if time[i] < 0 then
 				all_pos = false
-				return [nil,nil]
+				return [nil,nil,"logarithmic"]
 				break
 			end
 		end
@@ -123,11 +126,11 @@ class LogarithmicRegressor < Regressor
 			sse_log_reg = 0
 			log_reg_error.each{|e| sse_log_reg = sse_log_reg + e**2}
 			r_sqr_log_reg = 1 - (sse_log_reg/data_point_sst)
-			return [log_reg, r_sqr_log_reg]
+			return [log_reg, r_sqr_log_reg,"logarithmic"]
 		end
 	end
 
-	def logarithmic_regress x_array, y_array
+	def self.logarithmic_regress x_array, y_array
 		n = x_array.length
 		#sum of ys
 		sum_y = 0
@@ -164,13 +167,14 @@ end
 
 class ExponentialRegressor < Regressor
 
+
 	def self.regress time,data_point
 		data_point_sst = sum_squares_total data_point
 		all_pos = true
 		for i in 0..time.length-1
 			if data_point[i] < 0 then
 				all_pos = false
-				return [nil,nil]
+				return [nil,nil,"exponential"]
 				break
 			end
 		end
@@ -189,12 +193,12 @@ class ExponentialRegressor < Regressor
 			sse_exp_reg = 0
 			exp_reg_error.each {|e| sse_exp_reg = sse_exp_reg + e**2}
 			r_sqr_exp_reg = 1 - (sse_exp_reg/data_point_sst)
-			return[exp_reg,r_sqr_exp_reg]
+			return[exp_reg,r_sqr_exp_reg,"exponential"]
 		end
 	end
 
 
-	def exp_regress x_array, y_array 
+	def self.exp_regress x_array, y_array 
 		#Calculate the least square components: sum(lny),sum x^2,sum x,sum x*lny,(sum x)^2
 		n = x_array.length
 		log_y_array = []
@@ -221,3 +225,58 @@ class ExponentialRegressor < Regressor
 		return [E**a,b]
 	end
 end
+
+class BestRegressor < Regressor
+	def self.regress time, data_point
+		result_linear = SimpleRegressor.regress time,data_point
+		result_poly = PolynomialRegressor.regress time,data_point
+		result_log = LogarithmicRegressor.regress time,data_point
+		result_exp = ExponentialRegressor.regress time,data_point
+		result_array = []
+		result_array << result_linear
+		result_array << result_poly
+		r_sqr_array = []
+		r_sqr_array << result_linear[1]
+		r_sqr_array << result_poly[1]
+		#This set of if and elsif is to determine best fit in case some of the
+		#regression model(s) cannot be used. The best fit model 
+		#has largest r-sqred value
+		if result_log[1] == nil && result_exp[1] == nil then		
+			return result_array[r_sqr_array.rindex(r_sqr_array.max)]
+		elsif result_log[1] == nil && result_exp[1] != nil then
+			result_array<<result_exp
+			r_sqr_array << result_exp[1]
+			return result_array[r_sqr_array.rindex(r_sqr_array.max)]
+		elsif result_log[1] != nil && result_exp[1] == nil then
+			result_array<<result_log
+			r_sqr_array << result_log[1]
+			return result_array[r_sqr_array.rindex(r_sqr_array.max)]
+		elsif result_log[1] != nil && result_exp[1] != nil then
+			result_array<<result_log
+			result_array<<result_exp
+			r_sqr_array << result_log[1]
+			r_sqr_array << result_exp[1]
+			return result_array[r_sqr_array.rindex(r_sqr_array.max)]
+		end
+
+	end
+
+	def self.calculate regression, x
+		if regression[2] == "simple"
+			return (regression[0][0]*x + regression[0][1])
+		elsif regression[2] == "polynomial"
+			result = 0
+			for l in 0..(regression[0].size-1)
+				result = result + regression[0][l]*(x**l)
+			end
+			return result
+		elsif regression[2] == "logarithmic"
+			result = regression[0][0] + regression[0][1]*Math.log(x)
+			return result		
+		elsif regression[2] == "exponential"
+			result = regression[0][0]*E**(regression[0][1]*x)
+			return result
+		end
+	end
+end
+
