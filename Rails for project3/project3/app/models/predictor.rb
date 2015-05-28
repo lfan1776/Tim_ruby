@@ -24,6 +24,6 @@ class TemperaturePredictor < Predictor
 
 
 	end
-	
 end
+
 

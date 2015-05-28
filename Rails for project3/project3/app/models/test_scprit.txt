@@ -1,0 +1,29 @@
+start_date_string = "2015-05-27"
+end_date_string = "2015-05-28"
+p = PostCodeLocation.find_by(id: 1)
+lat = p.lat
+long = p.long
+latest_or_daily = "latest"
+
+
+#####create daily_readings
+
+u = DailyWeatherReading.new
+u.rainfall_mm_last_hour = 2
+u.wind_speed = 3
+u.wind_direction =240
+u.temperature = 29
+u.station_id = 2
+u.save
+
+
+###get_field_for_predition
+p = PostCodeLocation.find_by(id: 1)
+lat = p.lat
+long = p.long
+start_date_string = "2015-05-27"
+end_date_string = "2015-05-28"
+latest_or_daily = "latest"
+field_name = "temperature"
+number_of_stations = 3
+WeatherReader.get_field_for_predition lat,long,start_date_string,end_date_string,latest_or_daily,field_name,number_of_stations
