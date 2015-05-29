@@ -8,12 +8,9 @@ end
 class WeatherReader < DataReader
 
 	@station_list = Station.all
-	#date_string = "2015-05-27"
-	#p = PostCodeLocation.find_by(id: 1)
-	#lat = p.lat
-	#long = p.long
+	
 
-	def self.nearest_stations lat,long,start_date_string,end_date_string,latest_or_daily,number_of_stations
+	def self.nearest_stations_readings lat,long,start_date_string,end_date_string,latest_or_daily,number_of_stations
 		#then find the nearest station for post_code
 		start_date = Date.parse(start_date_string)
 		end_date = Date.parse(end_date_string)
@@ -47,78 +44,94 @@ class WeatherReader < DataReader
 				top_n_stations_readings << station_readings
 			end
 		end	
-		return top_n_stations_readings
+		return top_n_stations,top_n_stations_readings
 	end
+
+
 
 
 
 	def self.locations
-		#@station_list = [] 
 		@station_list = Station.all
-		#@station.each do |s|
-		#	@station_list << s
-		#end
 		return @station_list
-
-		#Station.find_by(id:1).latest_weather_readings.last
-
-
-		#date = Date.parse("2015-05-27")
-		#Station.where(:created_at => (date.beginning_of_day..date.end_of_day))
 	end
 
-	def self.location_id_date
-		date = Date.parse("2015-05-27")
-		station = Station.find_by(name: "mel")
+
+
+	def self.location_id_date location_id,date_string
+		date = Date.parse(date_string)
+		station = Station.find_by(name: location_id)
 		@location_id_date_list = station.latest_weather_readings.where(:created_at => (date.beginning_of_day..date.end_of_day))
 		return @location_id_date_list
 	end
 	
 
+
 	def self.post_code_date post_code,date_string
-		#date = Date.parse(date_string)
+		date = Date.parse(date_string)
 		p = PostCodeLocation.find_by(id: post_code)
 		lat_p = p.lat
 		long_p = p.long
-		top1_stations_readings = WeatherReader.nearest_stations(p.lat,p.long,date_string,date_string,"latest",1)
+		top1_stations_readings = WeatherReader.nearest_stations_readings(p.lat,p.long,date_string,date_string,"latest",1)
 		return top1_stations_readings
 	end
+
+
 
 	def self.get_field_for_predition lat,long,start_date_string,end_date_string,latest_or_daily,field_name,number_of_stations
 		#p = PostCodeLocation.find_by(ipost_code)
 		#lat_p = p.lat
 		#long_p = p.long 
 		field_stations_array = []
-		top_n_stations_latest_readings = WeatherReader.nearest_stations(lat,long,start_date_string,end_date_string,latest_or_daily,number_of_stations)
-		top_n_stations_latest_readings.each do |topn_s|
+		field_stations_index_array = []
+		top_n = WeatherReader.nearest_stations_readings(lat,long,start_date_string,end_date_string,latest_or_daily,number_of_stations)
+		top_n_stations = top_n[0]
+		top_n_stations_readings = top_n[1]
+		top_n_stations_readings.each do |topn_s|
 			record_value_array = []
+			record_index_array = []
+			index = 0
 			topn_s.each do |station_r|
 				if field_name == "temperature"
 					t = station_r.temperature
 					if (!t.nil?)
 						record_value_array << t
+						record_index_array << index
 					end
+					index += 1
 				elsif field_name == "wind_speed"
 					ws = station_r.wind_speed
 					if (!ws.nil?)
 						record_value_array << ws
+						record_index_array << index
 					end
+					index += 1
 				elsif field_name == "wind_direction"
 					wd = station_r.wind_direction
 					if (!wd.nil?)
 						record_value_array << wd
+						record_index_array << index
 					end
+					index += 1
 				elsif field_name == "rainfall"
 					r = station_r.rainfall_mm_last_hour
 					if (!r.nil?)
 						record_value_array << r
-					end 
+						record_index_array << index
+					end
+					index += 1 
 				end
 			end		
 			field_stations_array <<	record_value_array
-		end		
-					 	 
-		return field_stations_array
+			field_stations_index_array << record_index_array
+		end
+
+
+		top_n_dist = []
+		top_n_stations.each do |s|
+			top_n_dist << s.dist_p_s
+		end
+		return field_stations_array,field_stations_index_array,top_n_dist
 	end
 
 end
